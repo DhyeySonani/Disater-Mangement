@@ -42,9 +42,9 @@ export default function CitizenDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <nav className="bg-white shadow px-4 py-3 flex justify-between items-center">
+      <nav className="bg-white shadow px-4 py-3 flex flex-wrap justify-between items-center gap-4">
         <h1 className="text-xl font-bold text-red-700">Citizen Dashboard</h1>
-        <div className="flex gap-4 items-center">
+        <div className="flex flex-wrap gap-4 items-center">
           <span className="text-slate-600">{user?.name}</span>
           <Link to="/sos" className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700">Send SOS</Link>
           <Link to="/" className="text-slate-600 hover:text-red-600">Home</Link>

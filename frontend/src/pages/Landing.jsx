@@ -39,9 +39,9 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-slate-100">
       <nav className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
           <Link to="/" className="text-xl font-bold text-red-700">Disaster Alert & Emergency Coordination</Link>
-          <div className="flex gap-4 items-center">
+          <div className="flex flex-wrap gap-4 items-center">
             {user ? (
               <>
                 {user.role === "admin" && <Link to="/admin" className="text-slate-700 hover:text-red-600 font-medium">Admin</Link>}
@@ -125,8 +125,8 @@ export default function Landing() {
           {contacts.length === 0 ? (
             <p className="text-slate-500 bg-white p-6 rounded-xl shadow">No emergency contacts listed yet.</p>
           ) : (
-            <div className="bg-white rounded-xl shadow overflow-hidden">
-              <table className="w-full text-left">
+            <div className="bg-white rounded-xl shadow overflow-hidden overflow-x-auto">
+              <table className="w-full text-left min-w-[600px]">
                 <thead className="bg-slate-100">
                   <tr>
                     <th className="px-4 py-3 text-slate-700 font-semibold">Type</th>

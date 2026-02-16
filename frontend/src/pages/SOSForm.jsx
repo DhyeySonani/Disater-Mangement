@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
+import { isValidIndianMobile } from "../utils/validation";
 
 const DISASTER_TYPES = ["Flood", "Fire", "Earthquake", "Storm", "Landslide", "Other"];
 const PRIORITIES = ["High", "Medium", "Low"];
@@ -20,6 +21,13 @@ export default function SOSForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    if (form.phone && !isValidIndianMobile(form.phone)) {
+      setError("Invalid mobile number. Must be 10 digits starting with 6-9.");
+      setLoading(false);
+      return;
+    }
+
     const getLocation = () =>
       new Promise((resolve, reject) => {
         if (!navigator.geolocation) {

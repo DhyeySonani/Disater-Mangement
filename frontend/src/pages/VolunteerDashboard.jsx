@@ -67,9 +67,9 @@ export default function VolunteerDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <nav className="bg-white shadow px-4 py-3 flex justify-between items-center">
+      <nav className="bg-white shadow px-4 py-3 flex flex-wrap justify-between items-center gap-4">
         <h1 className="text-xl font-bold text-red-700">Volunteer Dashboard</h1>
-        <div className="flex gap-4 items-center">
+        <div className="flex flex-wrap gap-4 items-center">
           <span className="text-slate-600">{user?.name}</span>
           <div className="flex items-center gap-2">
             <span className="text-sm text-slate-600">Availability:</span>

@@ -4,6 +4,7 @@ import axios from "../api/axios";
 import socket from "../socket";
 import { useAuth } from "../context/AuthContext";
 import RescueMap from "../components/RescueMap";
+import { isValidIndianMobile } from "../utils/validation";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -128,6 +129,12 @@ export default function AdminDashboard() {
     e.preventDefault();
     const lat = Number(shelterForm.lat);
     const lng = Number(shelterForm.lng);
+
+    if (shelterForm.contactPhone && !isValidIndianMobile(shelterForm.contactPhone)) {
+      alert("Invalid shelter contact phone. Must be 10 digits starting with 6-9.");
+      return;
+    }
+
     await axios.post("/shelters", {
       name: shelterForm.name,
       address: shelterForm.address,
@@ -142,6 +149,10 @@ export default function AdminDashboard() {
 
   const createContact = async (e) => {
     e.preventDefault();
+    if (contactForm.phone && !isValidIndianMobile(contactForm.phone)) {
+      alert("Invalid contact phone. Must be 10 digits starting with 6-9.");
+      return;
+    }
     await axios.post("/emergency-contacts", contactForm);
     setContactForm({ name: "", phone: "", type: "Helpline", area: "" });
     fetchContacts();
@@ -165,6 +176,12 @@ export default function AdminDashboard() {
     if (!shelterEdit?._id) return;
     const lat = Number(shelterEditForm.lat);
     const lng = Number(shelterEditForm.lng);
+
+    if (shelterEditForm.contactPhone && !isValidIndianMobile(shelterEditForm.contactPhone)) {
+      alert("Invalid shelter contact phone. Must be 10 digits starting with 6-9.");
+      return;
+    }
+
     const payload = {
       name: shelterEditForm.name,
       address: shelterEditForm.address,
@@ -207,6 +224,10 @@ export default function AdminDashboard() {
 
   const saveContactEdit = async () => {
     if (!contactEdit?._id) return;
+    if (contactEditForm.phone && !isValidIndianMobile(contactEditForm.phone)) {
+      alert("Invalid contact phone. Must be 10 digits starting with 6-9.");
+      return;
+    }
     const res = await axios.put(`/emergency-contacts/${contactEdit._id}`, contactEditForm);
     setContacts((prev) => prev.map((x) => (x._id === contactEdit._id ? res.data : x)));
     setIsContactModalOpen(false);

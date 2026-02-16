@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
+import { isValidIndianMobile } from "../utils/validation";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -18,6 +19,10 @@ export default function Register() {
     e.preventDefault();
     setError("");
     try {
+      if (form.phone && !isValidIndianMobile(form.phone)) {
+        setError("Invalid mobile number. Must be 10 digits starting with 6-9.");
+        return;
+      }
       await axios.post("/auth/register", form);
       setSuccess(true);
       setTimeout(() => navigate("/login"), 1500);
