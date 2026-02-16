@@ -12,7 +12,17 @@ router.get("/", async (req, res) => {
 
 // Admin: create shelter
 router.post("/", protect, authorize("admin"), async (req, res) => {
-  const shelter = await Shelter.create(req.body);
+  const { name, address, location, capacity, contactPhone, facilities } = req.body;
+  const shelter = await Shelter.create({
+    name,
+    address,
+    location: location && (Number.isFinite(location.lat) || Number.isFinite(location.lng))
+      ? { lat: Number(location.lat) || 0, lng: Number(location.lng) || 0 }
+      : { lat: 0, lng: 0 },
+    capacity: Number(capacity) || 0,
+    contactPhone: contactPhone || undefined,
+    facilities: Array.isArray(facilities) ? facilities : []
+  });
   res.json(shelter);
 });
 

@@ -4,8 +4,8 @@ const shelterSchema = new mongoose.Schema({
   name: { type: String, required: true },
   address: { type: String, required: true },
   location: {
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true }
+    lat: { type: Number, default: 0 },
+    lng: { type: Number, default: 0 }
   },
   capacity: { type: Number, default: 0 },
   currentOccupancy: { type: Number, default: 0 },

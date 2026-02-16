@@ -4,12 +4,15 @@ import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Citizen: submit emergency request (SOS)
+// Citizen: submit emergency request (SOS) — broadcast for rescue map
 router.post("/", protect, authorize("citizen"), async (req, res) => {
   const request = await Request.create({
     ...req.body,
     userId: req.user.id
   });
+  const populated = await Request.findById(request._id)
+    .populate("userId", "name phone");
+  if (req.io) req.io.emit("newRescueRequest", populated);
   res.json(request);
 });
 

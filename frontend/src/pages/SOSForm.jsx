@@ -61,7 +61,10 @@ export default function SOSForm() {
           <h1 className="text-2xl font-bold text-red-700">Emergency Request (SOS)</h1>
           <Link to="/citizen" className="text-slate-600 hover:text-red-600 text-sm">← Dashboard</Link>
         </div>
-        <p className="text-slate-600 text-sm mb-6">Describe your situation. We will use your location if you allow it.</p>
+        <p className="text-slate-600 text-sm mb-2">Describe your situation. We will use your location if you allow it.</p>
+        <p className="text-amber-800 bg-amber-50 text-sm mb-6 px-3 py-2 rounded-lg border border-amber-200">
+          Your live location will be shared with Admin and volunteers on the rescue map so they can reach you quickly.
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</p>}

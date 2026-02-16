@@ -9,7 +9,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ["citizen", "admin", "volunteer"],
     default: "citizen"
-  }
+  },
+  // For volunteers: real-time availability (Online/Offline)
+  isAvailable: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model("User", userSchema);

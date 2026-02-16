@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import RescueMap from "../components/RescueMap";
 
 export default function VolunteerDashboard() {
   const { user } = useAuth();
@@ -35,14 +36,32 @@ export default function VolunteerDashboard() {
     }
   };
 
-  const setAvailability = async (availability) => {
+  const isAvailable = profile?.userId?.isAvailable ?? false;
+
+  const toggleAvailability = async () => {
+    const next = !isAvailable;
     try {
-      await axios.put("/volunteers/me", { availability });
-      setProfile((p) => ({ ...p, availability }));
+      await axios.put("/volunteers/me/availability", { isAvailable: next });
+      setProfile((p) => (p?.userId ? { ...p, userId: { ...p.userId, isAvailable: next } } : p));
     } catch (e) {
       console.error(e);
     }
   };
+
+  const rescueMapMarkers = useMemo(
+    () =>
+      (requests || [])
+        .filter((r) => r.location?.lat != null && r.location?.lng != null && Number.isFinite(r.location.lat) && Number.isFinite(r.location.lng))
+        .map((r) => ({
+          id: r._id,
+          lat: r.location.lat,
+          lng: r.location.lng,
+          title: `${r.disasterType} – ${r.priority}`,
+          description: r.description,
+          phone: r.userId?.phone || r.phone
+        })),
+    [requests]
+  );
 
   if (loading) return <div className="min-h-screen bg-slate-100 flex items-center justify-center">Loading...</div>;
 
@@ -50,21 +69,35 @@ export default function VolunteerDashboard() {
     <div className="min-h-screen bg-slate-100">
       <nav className="bg-white shadow px-4 py-3 flex justify-between items-center">
         <h1 className="text-xl font-bold text-red-700">Volunteer Dashboard</h1>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-4 items-center">
           <span className="text-slate-600">{user?.name}</span>
-          <select
-            value={profile?.availability || "Offline"}
-            onChange={(e) => setAvailability(e.target.value)}
-            className="border rounded px-2 py-1 text-sm"
-          >
-            <option value="Available">Available</option>
-            <option value="Busy">Busy</option>
-            <option value="Offline">Offline</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-600">Availability:</span>
+            <button
+              type="button"
+              onClick={toggleAvailability}
+              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${isAvailable ? "bg-emerald-500" : "bg-slate-300"}`}
+              role="switch"
+              aria-checked={isAvailable}
+            >
+              <span
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition ${isAvailable ? "translate-x-5" : "translate-x-1"}`}
+              />
+            </button>
+            <span className="text-sm font-medium text-slate-700 min-w-[52px]">
+              {isAvailable ? "Online" : "Offline"}
+            </span>
+          </div>
           <Link to="/" className="text-slate-600 hover:text-red-600 text-sm">Home</Link>
         </div>
       </nav>
       <div className="max-w-4xl mx-auto p-6">
+        {rescueMapMarkers.length > 0 && (
+          <section className="bg-white rounded-xl shadow p-6 mb-6">
+            <h2 className="text-lg font-semibold text-slate-800 mb-2">Rescue locations (tap marker for details)</h2>
+            <RescueMap markers={rescueMapMarkers} height="360px" />
+          </section>
+        )}
         <section className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">My assigned rescue requests</h2>
           {requests.length === 0 ? (

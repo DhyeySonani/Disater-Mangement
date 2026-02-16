@@ -9,18 +9,21 @@ export default function CitizenDashboard() {
   const [requests, setRequests] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [shelters, setShelters] = useState([]);
+  const [contacts, setContacts] = useState([]);
 
   useEffect(() => {
     const fetch = async () => {
       try {
-        const [r, a, s] = await Promise.all([
+        const [r, a, s, c] = await Promise.all([
           axios.get("/requests/my"),
           axios.get("/alerts"),
-          axios.get("/shelters")
+          axios.get("/shelters"),
+          axios.get("/emergency-contacts")
         ]);
         setRequests(r.data);
         setAlerts(a.data);
         setShelters(s.data);
+        setContacts(c.data);
       } catch (e) {
         console.error(e);
       }
@@ -105,6 +108,38 @@ export default function CitizenDashboard() {
             </ul>
           )}
           <Link to="/" className="text-red-600 text-sm font-medium mt-2 inline-block">View all on home →</Link>
+        </section>
+
+        <section className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Emergency contacts</h2>
+          {contacts.length === 0 ? (
+            <p className="text-slate-500">No emergency contacts listed yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-slate-200">
+                  <tr>
+                    <th className="py-2 pr-4 text-slate-600 font-semibold">Type</th>
+                    <th className="py-2 pr-4 text-slate-600 font-semibold">Name</th>
+                    <th className="py-2 pr-4 text-slate-600 font-semibold">Phone</th>
+                    {contacts.some((x) => x.area) && <th className="py-2 text-slate-600 font-semibold">Area</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {contacts.map((c) => (
+                    <tr key={c._id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-2 pr-4 font-medium text-slate-800">{c.type}</td>
+                      <td className="py-2 pr-4 text-slate-700">{c.name}</td>
+                      <td className="py-2 pr-4">
+                        <a href={`tel:${c.phone}`} className="text-red-600 font-medium hover:underline">{c.phone}</a>
+                      </td>
+                      {contacts.some((x) => x.area) && <td className="py-2 text-slate-500">{c.area || "—"}</td>}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </div>
     </div>

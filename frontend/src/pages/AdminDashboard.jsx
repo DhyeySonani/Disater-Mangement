@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "../api/axios";
+import socket from "../socket";
 import { useAuth } from "../context/AuthContext";
+import RescueMap from "../components/RescueMap";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -33,10 +35,35 @@ export default function AdminDashboard() {
       fetchRequests();
       fetchVolunteers();
     }
+    if (tab === "map") fetchRequests();
     if (tab === "volunteers") fetchVolunteers();
     if (tab === "shelters") fetchShelters();
     if (tab === "contacts") fetchContacts();
   }, [tab]);
+
+  // Real-time volunteer availability via Socket.io
+  useEffect(() => {
+    const onAvailability = ({ userId, isAvailable }) => {
+      setVolunteers((prev) =>
+        prev.map((v) =>
+          v.userId?._id === userId
+            ? { ...v, userId: { ...v.userId, isAvailable } }
+            : v
+        )
+      );
+    };
+    socket.on("volunteerAvailability", onAvailability);
+    return () => socket.off("volunteerAvailability", onAvailability);
+  }, []);
+
+  // Real-time new SOS / rescue request for map
+  useEffect(() => {
+    const onNewRescueRequest = (request) => {
+      setRequests((prev) => [request, ...prev]);
+    };
+    socket.on("newRescueRequest", onNewRescueRequest);
+    return () => socket.off("newRescueRequest", onNewRescueRequest);
+  }, []);
 
   const createAlert = async (e) => {
     e.preventDefault();
@@ -67,12 +94,15 @@ export default function AdminDashboard() {
 
   const createShelter = async (e) => {
     e.preventDefault();
+    const lat = Number(shelterForm.lat);
+    const lng = Number(shelterForm.lng);
     await axios.post("/shelters", {
-      ...shelterForm,
-      lat: Number(shelterForm.lat),
-      lng: Number(shelterForm.lng),
+      name: shelterForm.name,
+      address: shelterForm.address,
+      location: { lat: Number.isFinite(lat) ? lat : 0, lng: Number.isFinite(lng) ? lng : 0 },
       capacity: Number(shelterForm.capacity) || 0,
-      facilities: shelterForm.facilities ? shelterForm.facilities.split(",").map((s) => s.trim()) : []
+      contactPhone: shelterForm.contactPhone || undefined,
+      facilities: shelterForm.facilities ? shelterForm.facilities.split(",").map((s) => s.trim()).filter(Boolean) : []
     });
     setShelterForm({ name: "", address: "", lat: "", lng: "", capacity: "", contactPhone: "", facilities: "" });
     fetchShelters();
@@ -85,14 +115,37 @@ export default function AdminDashboard() {
     fetchContacts();
   };
 
+  const removeVolunteer = async (volunteerId, name) => {
+    if (!confirm(`Remove volunteer "${name}"? They will no longer have volunteer access.`)) return;
+    try {
+      await axios.delete(`/volunteers/${volunteerId}`);
+      setVolunteers((prev) => prev.filter((v) => v._id !== volunteerId));
+    } catch (e) {
+      console.error(e);
+      alert("Failed to remove volunteer.");
+    }
+  };
+
   const tabs = [
     { id: "analytics", label: "Analytics" },
+    { id: "map", label: "Rescue Map" },
     { id: "alerts", label: "Alerts" },
     { id: "requests", label: "Requests" },
     { id: "volunteers", label: "Volunteers" },
     { id: "shelters", label: "Shelters" },
     { id: "contacts", label: "Emergency Contacts" }
   ];
+
+  const rescueMapMarkers = requests
+    .filter((r) => r.location?.lat != null && r.location?.lng != null && Number.isFinite(r.location.lat) && Number.isFinite(r.location.lng))
+    .map((r) => ({
+      id: r._id,
+      lat: r.location.lat,
+      lng: r.location.lng,
+      title: `${r.disasterType} – ${r.priority} (${r.status})`,
+      description: r.description,
+      phone: r.userId?.phone || r.phone
+    }));
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -131,6 +184,14 @@ export default function AdminDashboard() {
               <Card title="Assigned" value={stats.assignedRequests} sub="requests" />
               <Card title="Resolved" value={stats.resolvedRequests} sub="requests" />
             </div>
+          </div>
+        )}
+
+        {tab === "map" && (
+          <div className="bg-white rounded-xl shadow overflow-hidden p-4">
+            <h3 className="font-semibold text-slate-800 mb-2">Live rescue map – SOS locations</h3>
+            <p className="text-slate-600 text-sm mb-4">Citizen SOS locations appear here in real time. Use the Requests tab to approve and assign volunteers.</p>
+            <RescueMap markers={rescueMapMarkers} height="480px" />
           </div>
         )}
 
@@ -230,7 +291,9 @@ export default function AdminDashboard() {
                           >
                             <option value="">Assign volunteer</option>
                             {volunteers.map((v) => (
-                              <option key={v._id} value={v.userId?._id}>{v.userId?.name} ({v.availability})</option>
+                              <option key={v._id} value={v.userId?._id}>
+                                {v.userId?.name} ({v.userId?.isAvailable ? "Online" : "Offline"})
+                              </option>
                             ))}
                           </select>
                         )}
@@ -246,14 +309,29 @@ export default function AdminDashboard() {
 
         {tab === "volunteers" && (
           <div className="bg-white rounded-xl shadow overflow-hidden">
-            <h3 className="p-4 font-semibold text-slate-800">Volunteer management</h3>
+            <h3 className="p-4 font-semibold text-slate-800">Volunteer management (availability updates in real time)</h3>
             <ul className="divide-y">
               {volunteers.map((v) => (
-                <li key={v._id} className="p-4 flex justify-between items-center">
+                <li key={v._id} className="p-4 flex justify-between items-center gap-4">
                   <div>
                     <p className="font-medium">{v.userId?.name}</p>
                     <p className="text-slate-600 text-sm">{v.userId?.email} {v.userId?.phone}</p>
-                    <p className="text-slate-500 text-xs">Availability: {v.availability} | Skills: {v.skills?.join(", ") || "—"}</p>
+                    <p className="text-slate-500 text-xs">Skills: {v.skills?.join(", ") || "—"}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${v.userId?.isAvailable ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${v.userId?.isAvailable ? "bg-emerald-500" : "bg-slate-400"}`} />
+                      {v.userId?.isAvailable ? "Online" : "Offline"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeVolunteer(v._id, v.userId?.name)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded text-sm font-medium"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </li>
               ))}
