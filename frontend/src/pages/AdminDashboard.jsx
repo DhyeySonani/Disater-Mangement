@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [contactEditForm, setContactEditForm] = useState({ name: "", phone: "", type: "Helpline", area: "" });
 
   // Confirm delete modal
-  const [confirm, setConfirm] = useState({ open: false, title: "", message: "", onConfirm: null });
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: "", message: "", onConfirm: null });
 
   const fetchStats = () => axios.get("/admin/stats").then((r) => setStats(r.data));
   const fetchAlerts = () => axios.get("/alerts").then((r) => setAlerts(r.data));
@@ -182,14 +182,14 @@ export default function AdminDashboard() {
   };
 
   const confirmDeleteShelter = (s) => {
-    setConfirm({
+    setConfirmModal({
       open: true,
       title: "Delete shelter?",
       message: `This will remove "${s.name}" from active shelters.`,
       onConfirm: async () => {
         await axios.delete(`/shelters/${s._id}`);
         setShelters((prev) => prev.filter((x) => x._id !== s._id));
-        setConfirm({ open: false, title: "", message: "", onConfirm: null });
+        setConfirmModal({ open: false, title: "", message: "", onConfirm: null });
       }
     });
   };
@@ -214,14 +214,14 @@ export default function AdminDashboard() {
   };
 
   const confirmDeleteContact = (c) => {
-    setConfirm({
+    setConfirmModal({
       open: true,
       title: "Delete emergency contact?",
       message: `This will remove "${c.type}: ${c.name}" from the directory.`,
       onConfirm: async () => {
         await axios.delete(`/emergency-contacts/${c._id}`);
         setContacts((prev) => prev.filter((x) => x._id !== c._id));
-        setConfirm({ open: false, title: "", message: "", onConfirm: null });
+        setConfirmModal({ open: false, title: "", message: "", onConfirm: null });
       }
     });
   };
@@ -685,17 +685,17 @@ export default function AdminDashboard() {
         </Modal>
 
         <ConfirmModal
-          open={confirm.open}
-          title={confirm.title}
-          message={confirm.message}
-          onCancel={() => setConfirm({ open: false, title: "", message: "", onConfirm: null })}
+          open={confirmModal.open}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onCancel={() => setConfirmModal({ open: false, title: "", message: "", onConfirm: null })}
           onConfirm={async () => {
             try {
-              await confirm.onConfirm?.();
+              await confirmModal.onConfirm?.();
             } catch (e) {
               console.error(e);
               alert(e.response?.data?.message || "Action failed");
-              setConfirm({ open: false, title: "", message: "", onConfirm: null });
+              setConfirmModal({ open: false, title: "", message: "", onConfirm: null });
             }
           }}
         />
