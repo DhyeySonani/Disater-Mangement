@@ -56,8 +56,34 @@ router.put("/assign/:id", protect, authorize("admin"), async (req, res) => {
   if (!request) return res.status(404).json({ message: "Request not found" });
   request.assignedVolunteer = req.body.volunteerId;
   request.status = "Assigned";
+  request.assignedAt = new Date();
+  request.assignmentUndoExpiresAt = new Date(Date.now() + 60 * 1000);
   await request.save();
-  res.json(request);
+  const populated = await Request.findById(request._id)
+    .populate("userId", "name email phone")
+    .populate("assignedVolunteer", "name email phone");
+  res.json(populated);
+});
+
+// Admin: undo assignment within 60 seconds
+router.put("/undo-assign/:id", protect, authorize("admin"), async (req, res) => {
+  const request = await Request.findById(req.params.id);
+  if (!request) return res.status(404).json({ message: "Request not found" });
+
+  if (!request.assignmentUndoExpiresAt || Date.now() > new Date(request.assignmentUndoExpiresAt).getTime()) {
+    return res.status(400).json({ message: "Undo window expired" });
+  }
+
+  request.assignedVolunteer = undefined;
+  request.status = "Pending";
+  request.assignedAt = undefined;
+  request.assignmentUndoExpiresAt = undefined;
+  await request.save();
+
+  const populated = await Request.findById(request._id)
+    .populate("userId", "name email phone")
+    .populate("assignedVolunteer", "name email phone");
+  res.json(populated);
 });
 
 // Volunteer: update request status (e.g. Resolved)

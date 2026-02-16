@@ -28,7 +28,22 @@ router.post("/", protect, authorize("admin"), async (req, res) => {
 
 // Admin: update shelter
 router.put("/:id", protect, authorize("admin"), async (req, res) => {
-  const shelter = await Shelter.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const { name, address, location, capacity, contactPhone, facilities, isActive } = req.body;
+  const update = {
+    ...(name !== undefined ? { name } : {}),
+    ...(address !== undefined ? { address } : {}),
+    ...(capacity !== undefined ? { capacity: Number(capacity) || 0 } : {}),
+    ...(contactPhone !== undefined ? { contactPhone: contactPhone || undefined } : {}),
+    ...(Array.isArray(facilities) ? { facilities } : {}),
+    ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {})
+  };
+  if (location) {
+    update.location = {
+      lat: Number(location.lat) || 0,
+      lng: Number(location.lng) || 0
+    };
+  }
+  const shelter = await Shelter.findByIdAndUpdate(req.params.id, update, { new: true });
   res.json(shelter);
 });
 

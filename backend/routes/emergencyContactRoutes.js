@@ -18,7 +18,15 @@ router.post("/", protect, authorize("admin"), async (req, res) => {
 
 // Admin: update contact
 router.put("/:id", protect, authorize("admin"), async (req, res) => {
-  const contact = await EmergencyContact.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const { name, phone, type, area, isActive } = req.body;
+  const update = {
+    ...(name !== undefined ? { name } : {}),
+    ...(phone !== undefined ? { phone } : {}),
+    ...(type !== undefined ? { type } : {}),
+    ...(area !== undefined ? { area } : {}),
+    ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {})
+  };
+  const contact = await EmergencyContact.findByIdAndUpdate(req.params.id, update, { new: true });
   res.json(contact);
 });
 

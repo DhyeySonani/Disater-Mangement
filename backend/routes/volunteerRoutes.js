@@ -42,15 +42,42 @@ router.put("/me", protect, authorize("volunteer"), async (req, res) => {
   res.json(volunteer);
 });
 
-// Admin: remove volunteer (delete Volunteer profile, set User role to citizen)
+// Admin: remove volunteer (with 60s undo window)
 router.delete("/:id", protect, authorize("admin"), async (req, res) => {
   const volunteer = await Volunteer.findById(req.params.id);
   if (!volunteer) return res.status(404).json({ message: "Volunteer not found" });
-  const userId = volunteer.userId;
-  await Volunteer.findByIdAndDelete(req.params.id);
-  await User.findByIdAndUpdate(userId, { role: "citizen", isAvailable: false });
-  if (req.io) req.io.emit("volunteerRemoved", { userId: userId.toString() });
-  res.json({ message: "Volunteer removed" });
+
+  volunteer.pendingRemoval = true;
+  volunteer.removalUndoExpiresAt = new Date(Date.now() + 60 * 1000);
+  await volunteer.save();
+
+  await User.findByIdAndUpdate(volunteer.userId, { role: "citizen", isAvailable: false });
+
+  // Force logout for that volunteer if they are online
+  if (req.io) req.io.emit("volunteerRemoved", { userId: volunteer.userId.toString() });
+
+  res.json({ undoExpiresAt: volunteer.removalUndoExpiresAt, volunteerId: volunteer._id });
+});
+
+// Admin: undo remove volunteer within 60 seconds
+router.put("/:id/undo-remove", protect, authorize("admin"), async (req, res) => {
+  const volunteer = await Volunteer.findById(req.params.id);
+  if (!volunteer) return res.status(404).json({ message: "Volunteer not found" });
+
+  if (!volunteer.pendingRemoval || !volunteer.removalUndoExpiresAt || Date.now() > new Date(volunteer.removalUndoExpiresAt).getTime()) {
+    return res.status(400).json({ message: "Undo window expired" });
+  }
+
+  volunteer.pendingRemoval = false;
+  volunteer.removalUndoExpiresAt = undefined;
+  await volunteer.save();
+
+  await User.findByIdAndUpdate(volunteer.userId, { role: "volunteer" });
+
+  if (req.io) req.io.emit("volunteerRestored", { userId: volunteer.userId.toString() });
+
+  const populated = await Volunteer.findById(volunteer._id).populate("userId", userFields);
+  res.json(populated);
 });
 
 export default router;

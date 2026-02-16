@@ -24,7 +24,10 @@ const requestSchema = new mongoose.Schema({
   assignedVolunteer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
-  }
+  },
+  // Admin undo window for assignments
+  assignedAt: Date,
+  assignmentUndoExpiresAt: Date
 }, { timestamps: true });
 
 export default mongoose.model("Request", requestSchema);
