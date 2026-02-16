@@ -13,6 +13,7 @@ import adminRoutes from "./routes/admin.js";
 import shelterRoutes from "./routes/shelterRoutes.js";
 import emergencyContactRoutes from "./routes/emergencyContactRoutes.js";
 import volunteerRoutes from "./routes/volunteerRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 connectDB();
 
@@ -37,16 +38,48 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/shelters", shelterRoutes);
 app.use("/api/emergency-contacts", emergencyContactRoutes);
 app.use("/api/volunteers", volunteerRoutes);
+app.use("/api/chat", chatRoutes);
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // Join a chat room for a specific request
+  socket.on("joinChatRoom", (requestId) => {
+    socket.join(`chat_${requestId}`);
+    console.log(`Socket ${socket.id} joined chat_${requestId}`);
+  });
+
+  // Leave a chat room
+  socket.on("leaveChatRoom", (requestId) => {
+    socket.leave(`chat_${requestId}`);
+    console.log(`Socket ${socket.id} left chat_${requestId}`);
+  });
+
+  // Typing indicator
+  socket.on("typing", ({ requestId, userId }) => {
+    socket.to(`chat_${requestId}`).emit("userTyping", { userId });
+  });
+
+  socket.on("stopTyping", ({ requestId, userId }) => {
+    socket.to(`chat_${requestId}`).emit("userStoppedTyping", { userId });
+  });
+
+  // Message delivery acknowledgment
+  socket.on("messageDelivered", ({ messageId, requestId }) => {
+    socket.to(`chat_${requestId}`).emit("messageStatusUpdate", { messageId, status: "delivered" });
+  });
+
+  // Legacy support for existing functionality
   socket.on("joinRoom", (roomId) => {
     socket.join(roomId);
   });
 
   socket.on("sendMessage", (data) => {
     io.to(data.roomId).emit("receiveMessage", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
   });
 });
 

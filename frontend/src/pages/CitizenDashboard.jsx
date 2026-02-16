@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "../api/axios";
 import socket from "../socket";
 import { useAuth } from "../context/AuthContext";
+import ChatWindow from "../components/ChatWindow";
 
 export default function CitizenDashboard() {
   const { user } = useAuth();
@@ -10,6 +11,7 @@ export default function CitizenDashboard() {
   const [alerts, setAlerts] = useState([]);
   const [shelters, setShelters] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [chatRequest, setChatRequest] = useState(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -69,7 +71,15 @@ export default function CitizenDashboard() {
                     <span className={`px-2 py-1 rounded text-sm font-medium ${getStatusColor(r.status)}`}>{r.status}</span>
                   </div>
                   {r.assignedVolunteer && (
-                    <p className="text-slate-600 text-sm mt-2">Assigned to: {r.assignedVolunteer.name} {r.assignedVolunteer.phone && `(${r.assignedVolunteer.phone})`}</p>
+                    <>
+                      <p className="text-slate-600 text-sm mt-2">Assigned to: {r.assignedVolunteer.name} {r.assignedVolunteer.phone && `(${r.assignedVolunteer.phone})`}</p>
+                      <button
+                        onClick={() => setChatRequest(r)}
+                        className="mt-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-700 transition"
+                      >
+                        💬 Chat with Volunteer
+                      </button>
+                    </>
                   )}
                 </li>
               ))}
@@ -142,6 +152,14 @@ export default function CitizenDashboard() {
           )}
         </section>
       </div>
+
+      {chatRequest && (
+        <ChatWindow
+          requestId={chatRequest._id}
+          otherUser={chatRequest.assignedVolunteer}
+          onClose={() => setChatRequest(null)}
+        />
+      )}
     </div>
   );
 }

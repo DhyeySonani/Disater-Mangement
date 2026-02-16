@@ -3,12 +3,14 @@ import { Link } from "react-router-dom";
 import axios from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import RescueMap from "../components/RescueMap";
+import ChatWindow from "../components/ChatWindow";
 
 export default function VolunteerDashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [chatRequest, setChatRequest] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -109,20 +111,36 @@ export default function VolunteerDashboard() {
                   <p className="font-medium text-slate-800">{r.disasterType} – {r.priority}</p>
                   <p className="text-slate-600 text-sm mt-1">{r.description}</p>
                   <p className="text-slate-500 text-xs mt-1">Status: {r.status}</p>
-                  {r.status === "Assigned" && (
+                  <div className="flex gap-2 mt-2">
+                    {r.status === "Assigned" && (
+                      <button
+                        onClick={() => updateStatus(r._id, "Resolved")}
+                        className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                      >
+                        Mark Resolved
+                      </button>
+                    )}
                     <button
-                      onClick={() => updateStatus(r._id, "Resolved")}
-                      className="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                      onClick={() => setChatRequest(r)}
+                      className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
                     >
-                      Mark Resolved
+                      💬 Chat with Citizen
                     </button>
-                  )}
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </section>
       </div>
+
+      {chatRequest && (
+        <ChatWindow
+          requestId={chatRequest._id}
+          otherUser={chatRequest.userId}
+          onClose={() => setChatRequest(null)}
+        />
+      )}
     </div>
   );
 }
